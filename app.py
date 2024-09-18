@@ -87,125 +87,64 @@ def tobs():
     # Return the temperature observations as a JSON list
     return jsonify([temp[0] for temp in most_active_station_temp])
 
-#Return a JSON list of the minimum temperature, the average temperature, and the maximum temperature for a specified start or start-end range.
-#For a specified start, calculate TMIN, TAVG, and TMAX for all the dates greater than or equal to the start date.
-# Route for a specified start date
-# /api/v1.0/<start>
-# Route for only start date
-# @app.route("/api/v1.0/<start>")
-# def temperature_stats_start_only(start):
-
-#     return temperature_stats(start, None)  # Pass None for end date
-
-# # Route for both start and end date
-# @app.route("/api/v1.0/<start>/<end>")
-# def temperature_stats_start_end(start, end):
-#     return temperature_stats(start, end)
-
-# Route for only start date
+#     # Return a JSON list of the minimum temperature, the average temperature, and the maximum temperature for a given start or start-end range
+#     return jsonify({'min': temps[0][0], 'avg': round(temps[0][1], 1), 'max': temps[0][2]})
 @app.route("/api/v1.0/<start>")
-def temperature_stats(start, end=None):  # Make 'end' default to None
-    # Validate and parse the start date
-    try:
-        start_date = dt.datetime.strptime(start, "%Y-%m-%d").date()
-    except ValueError:
-        return jsonify({"error": "Invalid start date format. Use YYYY-MM-DD."}), 400
+def temperature_stats2(start):
+    # Print request info to terminal for tracking
 
-    # Validate and parse the end date if provided
-    if end:
-        try:
-            end_date = dt.datetime.strptime(end, "%Y-%m-%d").date()
-        except ValueError:
-            return jsonify({"error": "Invalid end date format. Use YYYY-MM-DD."}), 400
-        else:
-            end_date = dt.date.today()  # Use today's date if no end date is provided
+    # Create new session link
+    session = Session(engine)
 
-    # Query logic for fetching temperature data (your existing logic goes here)
-    # For example:
-    # temperature_data = session.query(...).filter(...).all()
+    # Query for temperature data
+    temps = session.query(func.min(measurement.tobs), 
+                          func.avg(measurement.tobs), 
+                          func.max(measurement.tobs))\
+                   .filter(measurement.date >= start).first()
     
-    return jsonify({
-        "TMIN": ...,
-        "TAVG": ...,
-        "TMAX": ...,
-    })
-# Route for only start date
-@app.route("/api/v1.0/<start>")
-def temperature_stats_start_only(start):
-    return temperature_stats(start, None)  # Explicitly pass None for end
 
-# Route for both start and end dates
+
+    # Close session once queries are complete
+    session.close()
+    print("__________________________________________________")
+    print("Server received request for 'Start Date' search...")
+    print(temps)
+    print("__________________________________________________")
+
+    #Transform tupple 
+    return jsonify(list(temps))
+
 @app.route("/api/v1.0/<start>/<end>")
-def temperature_stats_start_end(start, end):
-    return temperature_stats(start, end)
+def temperature_stats(start,end):
+    # Print request info to terminal for tracking
+
+    # Create new session link
+    session = Session(engine)
+
+    # Query for temperature data
+    temps = session.query(func.min(measurement.tobs), 
+                          func.avg(measurement.tobs), 
+                          func.max(measurement.tobs))\
+                   .filter(measurement.date >= start).filter(measurement.date<= end).first()
+    
+
+
+    # Close session once queries are complete
+    session.close()
+    # print("__________________________________________________")
+    # print("Server received request for 'Start Date' search...")
+    # print(temps)
+    # print("__________________________________________________")
+
+    #Transform tupple 
+    return jsonify(list(temps))
+
+    # # Check if any results were returned
+    # if not temps or temps[0][0] is None:
+    #     return jsonify({"error": "No data found for the specified date"}), 404
+    
 if __name__ == "__main__":
     app.run(debug=True)
 
 
 ################################################
-
-
-
-# Convert the query results from your precipitation analysis (i.e. retrieve only the last 12 months of data) 
-# to a dictionary using date as the key and prcp as the value.
-
-# Return the JSON representation of your dictionary.
-
-# /api/v1.0/stations
-
-# Return a JSON list of stations from the dataset.
-# /api/v1.0/tobs
-
-# Query the dates and temperature observations of the most-active station for the previous year of data.
-
-# Return a JSON list of temperature observations for the previous year.
-
-# /api/v1.0/<start> and /api/v1.0/<start>/<end>
-
-# Return a JSON list of the minimum temperature, the average temperature, and the maximum temperature for a specified start or start-end range.
-
-# For a specified start, calculate TMIN, TAVG, and TMAX for all the dates greater than or equal to the start date.
-
-#@app.route("/api/v1.0/2016-01-01/2016-01-31")
-# def temperature_stats(start, end):
-#     # Validate and parse the start date
-#     try:
-#         start_date = dt.datetime.strptime(start, "%Y-%m-%d").date()
-#     except ValueError:
-#         return jsonify({"error": "Invalid start date format. Use YYYY-MM-DD."}), 400
-    
-#     # Validate and parse the end date if provided
-#     if end:
-#         try:
-#             end_date = dt.datetime.strptime(end, "%Y-%m-%d").date()
-#         except ValueError:
-#             return jsonify({"error": "Invalid end date format. Use YYYY-MM-DD."}), 400
-#     else:
-#         end_date = dt.date.today()  # Use today's date if no end date is provided
-
-#     # Query for temperature data in the specified date range
-#     query = session.query(
-#         func.min(measurement.tobs).label('TMIN'),
-#         func.avg(measurement.tobs).label('TAVG'),
-#         func.max(measurement.tobs).label('TMAX')
-#     ).filter(
-#         measurement.date >= start_date,
-#         measurement.date <= end_date
-#     ).all()
-
-#     # Extract results from the query
-#     if query:
-#         result = query[0]  # Since we are using aggregation, we expect a single result
-#         temperature_stats = {
-#             "TMIN": result.TMIN,
-#             "TAVG": result.TAVG,
-#             "TMAX": result.TMAX
-#         }
-#     else:
-#         temperature_stats = {
-#             "TMIN": None,
-#             "TAVG": None,
-#             "TMAX": None
-#         }
-
-#     return jsonify(temperature_stats)
